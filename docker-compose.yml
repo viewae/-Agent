@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-dashscope}
+      # 敏感 Key 从系统环境变量传入，不在此硬编码
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # 模型配置
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DASHSCOPE_EMBEDDING_MODEL=${DASHSCOPE_EMBEDDING_MODEL:-text-embedding-v2}
+      - DASHSCOPE_EMBEDDING_DIM=${DASHSCOPE_EMBEDDING_DIM:-1536}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      - OPENAI_EMBEDDING_DIM=${OPENAI_EMBEDDING_DIM:-1536}
+      - DATABASE_URL=sqlite:///./app.db
+      - UPLOAD_DIR=./uploads
+      - CHROMA_PERSIST_DIR=./chroma_db
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - CORS_ORIGINS=["http://localhost:80","http://localhost"]
+    volumes:
+      - uploads:/app/uploads
+      - chroma:/app/chroma_db
+      - db_data:/app
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  chroma:
+  db_data:

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+uploads/*
+!uploads/.gitkeep
+chroma_db/
+tests/
+.pytest_cache/
