@@ -2,6 +2,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -22,6 +23,7 @@ class Document(Base):
     file_type = Column(String(20), nullable=False)
     file_size = Column(Integer, nullable=False)
     upload_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     user_id = Column(Integer, default=1, nullable=False)
     status = Column(String(20), default=DocumentStatus.UPLOADED.value, nullable=False)
     content_text = Column(Text, nullable=True)

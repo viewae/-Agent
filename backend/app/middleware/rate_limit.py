@@ -2,11 +2,11 @@ import logging
 import time
 import threading
 
-from fastapi import Request
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from app.config import settings
-from app.exceptions import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else "unknown"
         bucket = self._get_bucket(client_ip)
         if not bucket.consume():
-            raise RateLimitError()
+            return JSONResponse(
+                status_code=429,
+                content={"code": 429, "message": "请求过于频繁，请稍后再试", "data": None},
+            )
 
         return await call_next(request)

@@ -5,7 +5,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, ValidationError
 from app.models.document import Document, DocumentStatus
 from app.models.document_chunk import DocumentChunk
 from app.schemas.document import (
@@ -44,14 +44,20 @@ class DocumentService:
         file_type = os.path.splitext(file.filename)[1].lstrip(".").lower()
         dest = os.path.join(settings.UPLOAD_DIR, unique_name)
 
-        contents = file.file.read()
-        file_size = len(contents)
+        # Stream file to disk instead of reading entirely into memory
+        file_size = 0
+        with open(dest, "wb") as f:
+            while True:
+                chunk = file.file.read(64 * 1024)  # 64KB chunks
+                if not chunk:
+                    break
+                file_size += len(chunk)
+                f.write(chunk)
+
         if file_size == 0:
+            os.remove(dest)
             raise ValidationError("File is empty")
         validate_file_size(file_size)
-
-        with open(dest, "wb") as f:
-            f.write(contents)
 
         doc = Document(
             filename=file.filename,
@@ -97,6 +103,9 @@ class DocumentService:
         except Exception as e:
             logger.exception("Document processing failed for %s", file.filename)
             doc.status = DocumentStatus.FAILED.value
+            # Clean up uploaded file on processing failure
+            if os.path.exists(dest):
+                os.remove(dest)
 
         self.db.commit()
         self.db.refresh(doc)

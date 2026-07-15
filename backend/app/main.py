@@ -88,3 +88,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"code": 500, "message": "Internal server error", "data": None},
     )
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

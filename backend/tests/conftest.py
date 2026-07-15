@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 # Ensure backend/app is on path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+# Use in-memory SQLite for tests — never touch production DB
+os.environ["DATABASE_URL"] = "sqlite:///./test_db.db"
 os.environ["OPENAI_API_KEY"] = "sk-test"
 os.environ["DEEPSEEK_API_KEY"] = "sk-test"
 os.environ["DASHSCOPE_API_KEY"] = "sk-test"
@@ -18,8 +19,13 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
 @pytest.fixture
 def client():
     from app.main import app
+    from app.database import Base, engine
+    # Create fresh tables for each test
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     with TestClient(app) as c:
         yield c
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

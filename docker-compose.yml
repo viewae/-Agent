@@ -28,6 +28,11 @@ services:
       - uploads:/app/uploads
       - chroma:/app/chroma_db
       - db_data:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   frontend:
@@ -35,7 +40,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

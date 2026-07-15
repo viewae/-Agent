@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.conversation import Conversation, MessageRole
@@ -43,31 +44,28 @@ class ConversationService:
         return [{"role": m.role, "content": m.content} for m in msgs]
 
     def get_user_sessions(self) -> list[dict]:
-        sessions = (
+        # Single query with aggregated count — avoids N+1
+        rows = (
             self.db.query(
                 Conversation.session_id,
                 Conversation.content,
                 Conversation.created_at,
+                func.count(Conversation.id).label("msg_count"),
             )
             .filter(Conversation.role == MessageRole.USER.value)
-            .order_by(Conversation.created_at.desc())
             .group_by(Conversation.session_id)
+            .order_by(Conversation.created_at.desc())
             .all()
         )
         result = []
         seen = set()
-        for sid, query, ts in sessions:
+        for sid, query, ts, count in rows:
             if sid in seen:
                 continue
             seen.add(sid)
-            count = (
-                self.db.query(Conversation)
-                .filter(Conversation.session_id == sid)
-                .count()
-            )
             result.append({
                 "session_id": sid,
-                "first_query": query[:100],
+                "first_query": query[:100] if query else "",
                 "message_count": count,
                 "created_at": ts.isoformat() if ts else "",
             })

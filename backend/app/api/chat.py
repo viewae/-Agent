@@ -62,7 +62,18 @@ async def chat_stream(
 
     async def generate():
         for chunk in rag.answer_stream(req.query, req.document_ids, history):
-            data = json.loads(chunk.replace("data: ", "").strip())
+            # Parse SSE data lines safely
+            raw = chunk.strip()
+            if raw.startswith("data: "):
+                raw = raw[6:]
+            if raw == "[DONE]":
+                yield chunk
+                continue
+            try:
+                data = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                yield chunk
+                continue
             if "content" in data:
                 full_answer.append(data["content"])
             elif "sources" in data:
